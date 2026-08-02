@@ -29,6 +29,17 @@ players <- sb_select("profiles", list(select = "email", email = "not.is.null"))
 
 if (nrow(weekly) == 0) { message("No picks to recap."); quit(save = "no") }
 
+# Apply the MNF tiebreaker (closest combined-score guess) to weekly ties
+tb <- sb_select("weekly_tiebreaks", list(
+  select = "user_id,tiebreak_diff",
+  season = paste0("eq.", season), week = paste0("eq.", week)
+))
+if (nrow(tb) > 0) {
+  weekly <- weekly |>
+    left_join(tb, by = "user_id") |>
+    arrange(desc(confidence_points), desc(wins), tiebreak_diff)
+}
+
 row_html <- function(df, cols) {
   paste0(apply(df[, cols], 1, function(r)
     paste0("<tr><td>", paste(r, collapse = "</td><td>"), "</td></tr>")),

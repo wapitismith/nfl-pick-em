@@ -29,7 +29,7 @@ export default function PickSheet({ session, week, forUser = null, admin = false
         .order('kickoff'),
       supabase
         .from('picks')
-        .select('game_id,picked_team,confidence')
+        .select('game_id,picked_team,confidence,tiebreaker_guess')
         .eq('user_id', userId),
     ])
     setGames(g ?? [])
@@ -65,6 +65,7 @@ export default function PickSheet({ session, week, forUser = null, admin = false
         game_id: gameId,
         picked_team: next.picked_team,
         confidence: next.confidence ?? null,
+        tiebreaker_guess: next.tiebreaker_guess ?? null,
       },
       { onConflict: 'user_id,game_id' }
     )
@@ -83,6 +84,11 @@ export default function PickSheet({ session, week, forUser = null, admin = false
   const nPicked = games.filter(
     g => picks[g.game_id]?.picked_team && picks[g.game_id]?.confidence != null
   ).length
+
+  // Tiebreaker game = last kickoff of the week (normally late MNF)
+  const tbGameId = games.length
+    ? games.reduce((a, b) => (new Date(a.kickoff) > new Date(b.kickoff) ? a : b)).game_id
+    : null
 
   return (
     <div>
@@ -142,6 +148,29 @@ export default function PickSheet({ session, week, forUser = null, admin = false
                   ))}
               </select>
             </div>
+            {g.game_id === tbGameId && (
+              <div className="tiebreak">
+                <span className="tb-label">
+                  Tiebreaker — combined final score of this game:
+                </span>
+                <input
+                  key={`${g.game_id}-${mine.tiebreaker_guess ?? ''}`}
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max="150"
+                  placeholder="e.g. 45"
+                  disabled={isLocked || !mine.picked_team || saving === g.game_id}
+                  defaultValue={mine.tiebreaker_guess ?? ''}
+                  onBlur={e => {
+                    const v = e.target.value === '' ? null : Number(e.target.value)
+                    if (v !== (mine.tiebreaker_guess ?? null)) {
+                      save(g.game_id, { tiebreaker_guess: v })
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
         )
       })}

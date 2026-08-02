@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, SEASON } from '../supabase.js'
 
 export default function Standings({ session, week }) {
@@ -6,6 +6,20 @@ export default function Standings({ session, week }) {
   const [rows, setRows] = useState([])
   const [updated, setUpdated] = useState(null)
   const [pots, setPots] = useState([])
+  const [tiebreaks, setTiebreaks] = useState({})
+
+  useEffect(() => {
+    supabase
+      .from('weekly_tiebreaks')
+      .select('*')
+      .eq('season', SEASON)
+      .eq('week', week)
+      .then(({ data }) => {
+        const map = {}
+        for (const t of data ?? []) map[t.user_id] = t
+        setTiebreaks(map)
+      })
+  }, [week, updated])
 
   useEffect(() => {
     supabase
@@ -30,6 +44,21 @@ export default function Standings({ session, week }) {
     setRows(data ?? [])
     setUpdated(new Date())
   }, [scope, week])
+
+  // Weekly view: break confidence-point ties with the MNF tiebreaker
+  const sortedRows = useMemo(() => {
+    if (scope !== 'week') return rows
+    const diff = id => {
+      const d = tiebreaks[id]?.tiebreak_diff
+      return d == null ? Infinity : d
+    }
+    return [...rows].sort(
+      (a, b) =>
+        (b.confidence_points ?? 0) - (a.confidence_points ?? 0) ||
+        (b.wins ?? 0) - (a.wins ?? 0) ||
+        diff(a.user_id) - diff(b.user_id)
+    )
+  }, [scope, rows, tiebreaks])
 
   useEffect(() => {
     load()
@@ -78,20 +107,29 @@ export default function Standings({ session, week }) {
             <th>Player</th>
             <th>W</th>
             <th>Conf Pts</th>
+            {scope === 'week' && <th>TB</th>}
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
+          {sortedRows.map((r, i) => (
             <tr key={r.user_id} className={r.user_id === me ? 'me' : ''}>
               <td>{i + 1}</td>
               <td>{r.display_name}</td>
               <td>{r.wins ?? 0}</td>
               <td>{r.confidence_points ?? 0}</td>
+              {scope === 'week' && (
+                <td className="muted">
+                  {tiebreaks[r.user_id]?.tiebreaker_guess ?? '—'}
+                  {tiebreaks[r.user_id]?.tiebreak_diff != null
+                    ? ` (Δ${tiebreaks[r.user_id].tiebreak_diff})`
+                    : ''}
+                </td>
+              )}
             </tr>
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan="4" className="muted center">
+              <td colSpan="5" className="muted center">
                 No graded picks yet.
               </td>
             </tr>
