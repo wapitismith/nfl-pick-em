@@ -32,6 +32,9 @@ header {
   gap: 8px;
 }
 header h1 { font-size: 1.25rem; margin: 8px 0; color: var(--navy); }
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand-logo { height: 44px; width: 44px; object-fit: contain; }
+.login-logo { width: 220px; max-width: 70%; margin: 0 auto 4px; display: block; }
 .header-right { display: flex; align-items: center; gap: 8px; }
 
 button, select, input {

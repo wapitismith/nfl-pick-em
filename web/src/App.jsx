@@ -64,7 +64,14 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>🏈 Pick-Em Pool</h1>
+        <h1 className="brand">
+          <img
+            src={`${import.meta.env.BASE_URL}logo-192.png`}
+            alt="Guffey Pick'Em NFL Pool"
+            className="brand-logo"
+          />
+          Guffey Pick'Em
+        </h1>
         <div className="header-right">
           {week != null && (
             <select

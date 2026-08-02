@@ -26,7 +26,12 @@ export default function Login() {
 
   return (
     <div className="app login">
-      <h1>🏈 Pick-Em Pool</h1>
+      <img
+        src={`${import.meta.env.BASE_URL}logo-512.png`}
+        alt="Guffey Pick'Em NFL Pool"
+        className="login-logo"
+      />
+      <h1>Guffey Pick'Em</h1>
       {sent ? (
         <p>
           Check your email — we sent a sign-in link to <b>{email}</b>. Open it on
