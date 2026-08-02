@@ -32,23 +32,40 @@ jobs:
 
       - name: Upload via cPanel API
         env:
-          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}    # e.g. server123.hosting.com or wapitismith.com
-          CPANEL_USER: ${{ secrets.CPANEL_USER }}    # colomtnd
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
         run: |
           set -euo pipefail
-          AUTH="Authorization: cpanel ${CPANEL_USER}:${CPANEL_TOKEN}"
-          BASE="https://${CPANEL_HOST}:2083/execute"
 
-          api() { # api <endpoint> <curl args...> — fails the job on cPanel-level errors
+          # --- Normalize the host: accept https://, ports, paths, whitespace ---
+          HOST=$(printf '%s' "$CPANEL_HOST" | tr -d '[:space:]' | sed -E 's#^[A-Za-z]+://##; s#[:/].*$##')
+          if [ -z "$HOST" ]; then
+            echo "::error::CPANEL_HOST secret is empty or unset"; exit 1
+          fi
+          echo "Deploying to host: $HOST (user: $CPANEL_USER)"
+
+          # --- Preflight: can we even reach cPanel on port 2083? ---
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 15 "https://${HOST}:2083/" || echo FAIL)
+          echo "Preflight https://${HOST}:2083 -> HTTP ${code}"
+          if [ "$code" = "FAIL" ]; then
+            echo "::error::Cannot reach ${HOST} on port 2083. The hostname is wrong or the server blocks outside API access. Try the exact hostname from your cPanel login URL."
+            exit 1
+          fi
+
+          AUTH="Authorization: cpanel ${CPANEL_USER}:${CPANEL_TOKEN}"
+          BASE="https://${HOST}:2083/execute"
+
+          api() { # api <endpoint> <curl args...>
             local out
             out=$(curl -sS -H "$AUTH" "$BASE/$1" "${@:2}")
-            if echo "$out" | grep -q '"errors":[^n]'; then
-              echo "cPanel API error on $1: $out" >&2; return 1
+            if ! echo "$out" | grep -q '"status":1'; then
+              echo "cPanel API response for $1: $out" >&2
+              return 1
             fi
           }
 
-          # Ensure target dirs exist (mkdir errors on 'already exists' are OK)
+          # Ensure target dirs exist ('already exists' errors are fine)
           api Fileman/mkdir --data-urlencode "path=/home/colomtnd/wapitismith" --data-urlencode "name=pickem" || true
           api Fileman/mkdir --data-urlencode "path=${DEST}" --data-urlencode "name=assets" || true
 
