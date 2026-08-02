@@ -9,3 +9,11 @@ export const supabase = createClient(
 )
 
 export const SEASON = Number(import.meta.env.VITE_SEASON ?? new Date().getFullYear())
+
+// Commissioner's Venmo handle (the part after venmo.com/u/). Optional —
+// the "Pay with Venmo" button is hidden when unset.
+export const VENMO_USER = import.meta.env.VITE_VENMO_USER ?? ''
+
+export const venmoLink = amount =>
+  `https://venmo.com/u/${VENMO_USER}?txn=pay&amount=${amount.toFixed(2)}` +
+  `&note=${encodeURIComponent('NFL Pick-Em dues')}`

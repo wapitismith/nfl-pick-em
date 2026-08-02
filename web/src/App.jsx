@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase, SEASON } from './supabase.js'
+import { supabase, SEASON, VENMO_USER, venmoLink } from './supabase.js'
 import Login from './components/Login.jsx'
 import PickSheet from './components/PickSheet.jsx'
 import Standings from './components/Standings.jsx'
@@ -11,6 +11,7 @@ export default function App() {
   const [week, setWeek] = useState(null)
   const [weeks, setWeeks] = useState([])
   const [profile, setProfile] = useState(null)
+  const [balance, setBalance] = useState(null)
   const isAdmin = !!profile?.is_admin
 
   useEffect(() => {
@@ -29,6 +30,17 @@ export default function App() {
       .single()
       .then(({ data }) => setProfile(data))
   }, [session])
+
+  // Pool dues balance (view may not exist until payments.sql is run)
+  useEffect(() => {
+    if (!session) return
+    supabase
+      .from('player_balances')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .single()
+      .then(({ data }) => setBalance(data ?? null))
+  }, [session, tab])
 
   // Determine current week: earliest week with a non-final game
   useEffect(() => {
@@ -76,6 +88,28 @@ export default function App() {
         <span className="muted">({session.user.email})</span>
         {isAdmin && <span className="badge win" style={{ marginLeft: 6 }}>admin</span>}
       </p>
+
+      {balance && balance.balance < 0 && (
+        <p className="pay-banner owe">
+          Pool dues: you owe <b>${Math.abs(balance.balance).toFixed(0)}</b>
+          {VENMO_USER && (
+            <a
+              className="venmo-btn"
+              href={venmoLink(Math.abs(balance.balance))}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Pay with Venmo
+            </a>
+          )}
+        </p>
+      )}
+      {balance && balance.balance >= 0 && balance.weeks_played > 0 && (
+        <p className="pay-banner ok">
+          Dues paid up ✓
+          {balance.balance > 0 ? ` ($${Number(balance.balance).toFixed(0)} credit)` : ''}
+        </p>
+      )}
 
       <nav className="tabs">
         <button className={tab === 'picks' ? 'active' : ''} onClick={() => setTab('picks')}>

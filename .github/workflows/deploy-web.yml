@@ -26,6 +26,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           VITE_SEASON: "2026"
+          VITE_VENMO_USER: ${{ vars.VENMO_USER }}
         run: |
           npm ci
           npm run build

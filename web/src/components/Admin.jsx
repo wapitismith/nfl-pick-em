@@ -6,6 +6,7 @@ export default function Admin({ session, week }) {
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
   const [picks, setPicks] = useState([]) // all picks for this week's games
+  const [balances, setBalances] = useState([])
   const [editPlayer, setEditPlayer] = useState(null)
   const [gameEdits, setGameEdits] = useState({})
   const [msg, setMsg] = useState(null)
@@ -18,15 +19,17 @@ export default function Admin({ session, week }) {
       .eq('week', week)
       .order('kickoff')
     const gameIds = (g ?? []).map(x => x.game_id)
-    const [{ data: pl }, { data: pk }] = await Promise.all([
+    const [{ data: pl }, { data: pk }, { data: bal }] = await Promise.all([
       supabase.from('profiles').select('*').order('display_name'),
       gameIds.length
         ? supabase.from('picks').select('user_id,game_id,confidence').in('game_id', gameIds)
         : Promise.resolve({ data: [] }),
+      supabase.from('player_balances').select('*').order('display_name'),
     ])
     setGames(g ?? [])
     setPlayers(pl ?? [])
     setPicks(pk ?? [])
+    setBalances(bal ?? [])
   }, [week])
 
   useEffect(() => { load() }, [load])
@@ -74,6 +77,26 @@ export default function Admin({ session, week }) {
     else {
       flash(`${g.away_team} @ ${g.home_team} saved`)
       setGameEdits(cur => ({ ...cur, [g.game_id]: undefined }))
+      load()
+    }
+  }
+
+  // ----- payments -----
+  async function recordPayment(b) {
+    const amt = window.prompt(
+      `Record payment from ${b.display_name} ($ — use a negative number to correct a mistake):`,
+      '5'
+    )
+    if (amt == null || amt.trim() === '' || isNaN(Number(amt))) return
+    const { error } = await supabase.from('payments').insert({
+      user_id: b.user_id,
+      season: SEASON,
+      amount: Number(amt),
+      method: 'manual',
+    })
+    if (error) flash(error.message)
+    else {
+      flash(`Recorded $${amt} from ${b.display_name}`)
       load()
     }
   }
@@ -171,6 +194,46 @@ export default function Admin({ session, week }) {
           </div>
         )
       })}
+
+      <h2 className="admin-h">Pool dues ($5/week played)</h2>
+      <table className="standings">
+        <thead>
+          <tr><th>Player</th><th>Weeks</th><th>Owed</th><th>Paid</th><th>Balance</th><th></th></tr>
+        </thead>
+        <tbody>
+          {balances
+            .filter(b => b.active !== false || b.weeks_played > 0)
+            .map(b => (
+              <tr key={b.user_id}>
+                <td>{b.display_name}</td>
+                <td>{b.weeks_played}</td>
+                <td>${Number(b.owed).toFixed(0)}</td>
+                <td>${Number(b.paid).toFixed(0)}</td>
+                <td>
+                  <span className={`badge ${b.balance < 0 ? 'loss' : 'win'}`}>
+                    {b.balance < 0
+                      ? `owes $${Math.abs(b.balance).toFixed(0)}`
+                      : b.balance > 0
+                        ? `+$${Number(b.balance).toFixed(0)}`
+                        : 'even'}
+                  </span>
+                </td>
+                <td>
+                  <button className="link" onClick={() => recordPayment(b)}>
+                    record $
+                  </button>
+                </td>
+              </tr>
+            ))}
+          {balances.length === 0 && (
+            <tr>
+              <td colSpan="6" className="muted center">
+                Run payments.sql in Supabase to enable dues tracking.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
 
       <h2 className="admin-h">Players</h2>
       <table className="standings">

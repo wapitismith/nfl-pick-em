@@ -118,6 +118,18 @@ button.link {
 
 .welcome { margin: 0 0 4px; font-size: 0.88rem; }
 
+.pay-banner {
+  margin: 4px 0 8px; padding: 8px 12px; border-radius: 10px;
+  font-size: 0.9rem; display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap;
+}
+.pay-banner.owe { background: #fdecec; border: 1px solid #f2c4c8; }
+.pay-banner.ok  { background: #e5f5ea; border: 1px solid #bfe3cb; color: #1b5e30; }
+.venmo-btn {
+  background: #008cff; color: #fff; font-weight: 700; text-decoration: none;
+  padding: 6px 14px; border-radius: 999px; font-size: 0.85rem;
+}
+
 .admin-h { font-size: 1.05rem; color: var(--navy); margin: 22px 0 8px; }
 .admin-banner {
   background: #fff7e0; border: 1px solid #eadfae; border-radius: 10px;
