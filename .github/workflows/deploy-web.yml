@@ -71,17 +71,16 @@ jobs:
           api Fileman/mkdir --data-urlencode "path=${DEST}" --data-urlencode "name=assets" || true
 
           cd web/dist
-          # Upload everything at the dist root (index.html, logo, favicons, ...)
-          for f in *; do
-            if [ -f "$f" ]; then
-              api Fileman/upload_files -F "dir=${DEST}" -F "overwrite=1" -F "file-1=@${f}"
-              echo "uploaded ${f}"
-            fi
+          # Mirror the whole dist tree: create remote dirs, then upload every file
+          for d in $(find . -type d | sed 's|^\./||' | grep -v '^\.$'); do
+            parent=$(dirname "$d"); name=$(basename "$d")
+            if [ "$parent" = "." ]; then ppath="${DEST}"; else ppath="${DEST}/${parent}"; fi
+            api Fileman/mkdir --data-urlencode "path=${ppath}" --data-urlencode "name=${name}" || true
           done
-          i=1
-          for f in assets/*; do
-            api Fileman/upload_files -F "dir=${DEST}/assets" -F "overwrite=1" -F "file-${i}=@${f}"
+          for f in $(find . -type f | sed 's|^\./||'); do
+            dir=$(dirname "$f")
+            if [ "$dir" = "." ]; then rdir="${DEST}"; else rdir="${DEST}/${dir}"; fi
+            api Fileman/upload_files -F "dir=${rdir}" -F "overwrite=1" -F "file-1=@${f}"
             echo "uploaded ${f}"
-            i=$((i+1))
           done
           echo "Deployed to https://wapitismith.com/pickem/"

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, SEASON } from '../supabase.js'
-import { teamLabel } from '../teams.js'
+import { teamLabel, helmetSrc, espnLogo } from '../teams.js'
 
 const fmtKick = iso =>
   new Date(iso).toLocaleString([], {
@@ -123,12 +123,24 @@ export default function PickSheet({ session, week, forUser = null, admin = false
               {[g.away_team, g.home_team].map(team => (
                 <button
                   key={team}
-                  className={`team ${mine.picked_team === team ? 'picked' : ''}`}
+                  className={`team team-tile ${mine.picked_team === team ? 'picked' : ''}`}
                   disabled={isLocked || saving === g.game_id}
                   onClick={() => save(g.game_id, { picked_team: team })}
                 >
-                  {teamLabel(team)}
-                  {team === g.home_team && <span className="muted"> home</span>}
+                  <img
+                    className="team-img"
+                    src={helmetSrc(team)}
+                    alt=""
+                    loading="lazy"
+                    onError={e => {
+                      const fb = espnLogo(team)
+                      if (!e.currentTarget.src.endsWith(fb.split('/').pop())) {
+                        e.currentTarget.src = fb
+                      }
+                    }}
+                  />
+                  <span className="team-name">{teamLabel(team)}</span>
+                  {team === g.home_team && <span className="muted">home</span>}
                 </button>
               ))}
               <select

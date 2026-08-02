@@ -37,3 +37,15 @@ export const TEAM_NAMES = {
 // "Broncos (DEN)" — falls back to just the abbreviation if unknown.
 export const teamLabel = abbr =>
   TEAM_NAMES[abbr] ? `${TEAM_NAMES[abbr]} (${abbr})` : abbr
+
+// ESPN CDN abbreviations that differ from nflverse
+const ESPN_ABBR = { LA: 'lar', WAS: 'wsh' }
+
+// Fallback team graphic: ESPN's team logo CDN.
+export const espnLogo = abbr =>
+  `https://a.espncdn.com/i/teamlogos/nfl/500/${(ESPN_ABBR[abbr] ?? abbr).toLowerCase()}.png`
+
+// Preferred graphic: a self-hosted helmet image, if one exists.
+// Drop PNGs into web/public/helmets/ named DEN.png, KC.png, ... and
+// they automatically replace the ESPN logo, team by team.
+export const helmetSrc = abbr => `${import.meta.env.BASE_URL}helmets/${abbr}.png`
