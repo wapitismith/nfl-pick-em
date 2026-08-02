@@ -1,0 +1,62 @@
+name: Deploy web app to cPanel
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**"]
+  workflow_dispatch: {}
+
+env:
+  DEST: /home/colomtnd/wapitismith/pickem   # wapitismith.com/pickem
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build
+        working-directory: web
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SEASON: "2026"
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload via cPanel API
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}    # e.g. server123.hosting.com or wapitismith.com
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}    # colomtnd
+          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          AUTH="Authorization: cpanel ${CPANEL_USER}:${CPANEL_TOKEN}"
+          BASE="https://${CPANEL_HOST}:2083/execute"
+
+          api() { # api <endpoint> <curl args...> — fails the job on cPanel-level errors
+            local out
+            out=$(curl -sS -H "$AUTH" "$BASE/$1" "${@:2}")
+            if echo "$out" | grep -q '"errors":[^n]'; then
+              echo "cPanel API error on $1: $out" >&2; return 1
+            fi
+          }
+
+          # Ensure target dirs exist (mkdir errors on 'already exists' are OK)
+          api Fileman/mkdir --data-urlencode "path=/home/colomtnd/wapitismith" --data-urlencode "name=pickem" || true
+          api Fileman/mkdir --data-urlencode "path=${DEST}" --data-urlencode "name=assets" || true
+
+          cd web/dist
+          api Fileman/upload_files -F "dir=${DEST}" -F "overwrite=1" -F "file-1=@index.html"
+          i=1
+          for f in assets/*; do
+            api Fileman/upload_files -F "dir=${DEST}/assets" -F "overwrite=1" -F "file-${i}=@${f}"
+            i=$((i+1))
+          done
+          echo "Deployed to https://wapitismith.com/pickem/"

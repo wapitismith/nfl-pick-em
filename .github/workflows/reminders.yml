@@ -1,0 +1,32 @@
+name: Pick reminders
+
+on:
+  schedule:
+    - cron: "0 17 * * 4"   # Thu 17:00 UTC (11am MT) — before Thursday night
+    - cron: "0 16 * * 6"   # Sat 16:00 UTC — before Saturday games (late season)
+    - cron: "0 14 * * 0"   # Sun 14:00 UTC (8am MT) — before Sunday slate
+  workflow_dispatch: {}
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with: { use-public-rspm: true }
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::httr2
+            any::dplyr
+            any::jsonlite
+            any::nflreadr
+      - name: Send reminders
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: ${{ vars.MAIL_FROM }}
+          APP_URL: ${{ vars.APP_URL }}
+          POOL_TZ: America/Denver
+        run: Rscript R/send_reminders.R

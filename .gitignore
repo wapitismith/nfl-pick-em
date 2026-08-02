@@ -1,0 +1,7 @@
+.env
+web/.env
+node_modules/
+web/dist/
+.Rhistory
+.RData
+.Rproj.user/
