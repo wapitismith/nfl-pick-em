@@ -2,7 +2,7 @@ name: Sync schedule (nflverse)
 
 on:
   schedule:
-    - cron: "0 10 * * 2"   # Tuesdays 10:00 UTC — picks up flex-schedule moves
+    - cron: "0 10 * * *"   # daily 10:00 UTC (4am MT) — catches flexes AND short-notice moves
   workflow_dispatch:
     inputs:
       season:
