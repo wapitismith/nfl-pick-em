@@ -1,0 +1,28 @@
+name: Welcome new members
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"   # every 6 hours; only sends when someone new signed in
+  workflow_dispatch: {}
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with: { use-public-rspm: true }
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::httr2
+            any::dplyr
+            any::jsonlite
+            any::emayili
+      - name: Welcome new members
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: Rscript R/send_new_member_welcome.R

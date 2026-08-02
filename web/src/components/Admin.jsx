@@ -238,12 +238,16 @@ export default function Admin({ session, week }) {
       <h2 className="admin-h">Players</h2>
       <table className="standings">
         <thead>
-          <tr><th>Name</th><th>Active</th><th>Admin</th><th></th></tr>
+          <tr><th>Name</th><th>Joined</th><th>Active</th><th>Admin</th><th></th></tr>
         </thead>
         <tbody>
           {players.map(p => (
             <tr key={p.id} className={p.active === false ? 'inactive' : ''}>
               <td>{p.display_name}<div className="muted small">{p.email}</div></td>
+              <td className="muted small">
+                {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
+                {p.welcomed_at == null && <div className="badge">new</div>}
+              </td>
               <td>
                 <input
                   type="checkbox"

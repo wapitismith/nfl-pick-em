@@ -58,6 +58,17 @@ sb_upsert <- function(table, df, on_conflict = NULL) {
   invisible(NULL)
 }
 
+#' Update rows matching a PostgREST filter string, e.g.
+#' sb_patch("profiles", "id=eq.abc", list(welcomed_at = "2026-08-02T12:00:00Z"))
+sb_patch <- function(table, filter, values) {
+  sb_req(paste0(table, "?", filter)) |>
+    req_headers(`Content-Type` = "application/json", Prefer = "return=minimal") |>
+    req_body_raw(jsonlite::toJSON(values, auto_unbox = TRUE, na = "null")) |>
+    req_method("PATCH") |>
+    req_perform()
+  invisible(NULL)
+}
+
 #' Send an email through Resend (https://resend.com).
 #' Swap this function body for blastula/SMTP, Mailgun, Brevo, etc. if preferred.
 send_email <- function(to, subject, html) {
