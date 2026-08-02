@@ -5,7 +5,7 @@
 
 source(file.path(dirname(sub("--file=", "", grep("--file=", commandArgs(), value = TRUE))), "helpers.R"))
 
-season <- as.integer(Sys.getenv("SEASON", current_season()))
+season <- as.integer(env_or("SEASON", current_season()))
 # Recap the most recent COMPLETED week
 games <- sb_select("games", list(select = "week,status",
                                  season = paste0("eq.", season),

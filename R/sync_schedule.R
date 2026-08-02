@@ -7,7 +7,8 @@
 source(file.path(dirname(sub("--file=", "", grep("--file=", commandArgs(), value = TRUE))), "helpers.R"))
 suppressPackageStartupMessages(library(nflreadr))
 
-season <- as.integer(Sys.getenv("SEASON", current_season()))
+season <- as.integer(env_or("SEASON", current_season()))
+stopifnot(!is.na(season))
 message("Syncing schedule for season ", season)
 
 sched <- load_schedules(season) |>

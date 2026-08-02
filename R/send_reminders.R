@@ -6,9 +6,9 @@
 
 source(file.path(dirname(sub("--file=", "", grep("--file=", commandArgs(), value = TRUE))), "helpers.R"))
 
-lookahead_hours <- as.numeric(Sys.getenv("LOOKAHEAD_HOURS", "10"))
-season <- as.integer(Sys.getenv("SEASON", current_season()))
-week   <- as.integer(Sys.getenv("WEEK", current_week(season)))
+lookahead_hours <- as.numeric(env_or("LOOKAHEAD_HOURS", "10"))
+season <- as.integer(env_or("SEASON", current_season()))
+week   <- as.integer(env_or("WEEK", current_week(season)))
 
 missing <- sb_select("missing_picks", list(
   select = "*",

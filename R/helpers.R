@@ -12,6 +12,13 @@ suppressPackageStartupMessages({
   library(dplyr)
 })
 
+#' Read an env var, treating "" (set-but-blank, e.g. an empty workflow
+#' input) the same as unset — falls back to `default`.
+env_or <- function(var, default) {
+  v <- Sys.getenv(var)
+  if (nzchar(v)) v else default
+}
+
 sb_url <- function() Sys.getenv("SUPABASE_URL")
 sb_key <- function() Sys.getenv("SUPABASE_SERVICE_KEY")
 

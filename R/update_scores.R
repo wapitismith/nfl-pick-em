@@ -7,8 +7,8 @@
 
 source(file.path(dirname(sub("--file=", "", grep("--file=", commandArgs(), value = TRUE))), "helpers.R"))
 
-season <- as.integer(Sys.getenv("SEASON", current_season()))
-week   <- as.integer(Sys.getenv("WEEK", current_week(season)))
+season <- as.integer(env_or("SEASON", current_season()))
+week   <- as.integer(env_or("WEEK", current_week(season)))
 message("Updating scores: season ", season, ", week ", week)
 
 # --- our games for the week ---------------------------------------------
