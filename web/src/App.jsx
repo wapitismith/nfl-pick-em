@@ -61,7 +61,7 @@ export default function App() {
               aria-label="Week"
             >
               {weeks.map(w => (
-                <option key={w} value={w}>Week {w}</option>
+                <option key={w} value={w}>{w === 0 ? 'Test Week' : `Week ${w}`}</option>
               ))}
             </select>
           )}

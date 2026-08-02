@@ -100,7 +100,9 @@ export default function Admin({ session, week }) {
     <div>
       {msg && <p className="center"><span className="badge win">{msg}</span></p>}
 
-      <h2 className="admin-h">Who's picked — Week {week}</h2>
+      <h2 className="admin-h">
+        Who's picked — {week === 0 ? 'Test Week' : `Week ${week}`}
+      </h2>
       <table className="standings">
         <thead>
           <tr><th>Player</th><th>Picks in</th><th></th></tr>

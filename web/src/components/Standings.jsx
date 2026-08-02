@@ -34,7 +34,7 @@ export default function Standings({ session, week }) {
     <div>
       <div className="scope-toggle">
         <button className={scope === 'week' ? 'active' : ''} onClick={() => setScope('week')}>
-          Week {week}
+          {week === 0 ? 'Test Week' : `Week ${week}`}
         </button>
         <button className={scope === 'season' ? 'active' : ''} onClick={() => setScope('season')}>
           Season
