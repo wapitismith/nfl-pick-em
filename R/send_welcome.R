@@ -68,13 +68,10 @@ body <- sprintf('
   <p><b>Mike</b><br><span style="color:#6b7280">Commissioner &middot; Guffey Pick&#8217;Em NFL Pool</span></p>
 </div>', app_url, app_url)
 
-# Fresh connection per message: curl's SMTP connection reuse can
-# segfault R on the second send, so never reuse.
-send_one <- function(msg) {
-  smtp <- server(host = smtp_host, port = smtp_port,
-                 username = smtp_user, password = smtp_pass,
-                 reuse = FALSE)
-  smtp(msg)
+# Send via the curl BINARY (one process per email) — in-process curl
+# segfaults R on the second SMTP send. See smtp_send_curl in helpers.R.
+send_one <- function(msg, to) {
+  smtp_send_curl(msg, to, smtp_host, smtp_port, smtp_user, smtp_pass)
 }
 
 sent <- 0
@@ -87,7 +84,7 @@ for (to in emails) {
     emayili::html(body) |>
     attachment(letter)
   tryCatch({
-    send_one(msg)
+    send_one(msg, to)
     sent <- sent + 1
     message("sent: ", to)
   }, error = function(e) message("FAILED: ", to, " - ", conditionMessage(e)))

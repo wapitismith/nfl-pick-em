@@ -69,6 +69,35 @@ sb_patch <- function(table, filter, values) {
   invisible(NULL)
 }
 
+#' Send a rendered emayili envelope via the command-line curl binary.
+#' One fresh curl PROCESS per email — works around a libcurl-in-R bug
+#' where a second in-process SMTP send segfaults. Credentials are
+#' passed on stdin (not the command line).
+smtp_send_curl <- function(msg, to, host, port, user, pass,
+                           from = "pool@wapitismith.com") {
+  txt <- as.character(msg, encode = TRUE)
+  txt <- gsub("(?<!\r)\n", "\r\n", txt, perl = TRUE)  # SMTP wants CRLF
+  eml <- tempfile(fileext = ".eml")
+  on.exit(unlink(eml), add = TRUE)
+  writeBin(charToRaw(txt), eml)
+  cfg <- sprintf('user = "%s:%s"', user, pass)
+  out <- suppressWarnings(system2(
+    "curl",
+    c("-sS", "--ssl-reqd",
+      sprintf("smtps://%s:%d", host, port),
+      "--mail-from", from,
+      "--mail-rcpt", to,
+      "--upload-file", eml,
+      "-K", "-"),
+    input = cfg, stdout = TRUE, stderr = TRUE
+  ))
+  code <- attr(out, "status")
+  if (!is.null(code) && code != 0) {
+    stop("curl exit ", code, ": ", paste(out, collapse = " "))
+  }
+  invisible(TRUE)
+}
+
 #' Send an email through Resend (https://resend.com).
 #' Swap this function body for blastula/SMTP, Mailgun, Brevo, etc. if preferred.
 send_email <- function(to, subject, html) {
