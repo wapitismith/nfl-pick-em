@@ -34,7 +34,7 @@ message("Sending to ", length(emails), " recipient(s)")
 
 body <- sprintf('
 <div style="max-width:640px;margin:0 auto;font-family:Segoe UI,Calibri,Arial,sans-serif;color:#16202e">
-  <p style="text-align:center"><img src="https://wapitismith.com/pickem/logo-192.png" width="140" alt="Guffey Pick%%27Em NFL Pool"></p>
+  <p style="text-align:center"><img src="web/public/logo-192.png" width="140" alt="Guffey Pick%%27Em NFL Pool"></p>
   <h2 style="text-align:center;color:#0b2545;margin:6px 0">GUFFEY PICK&#8217;EM &mdash; 2026 SEASON</h2>
   <p style="text-align:center"><a href="%s" style="color:#1b7a3d;font-weight:bold">wapitismith.com/pickem</a></p>
 

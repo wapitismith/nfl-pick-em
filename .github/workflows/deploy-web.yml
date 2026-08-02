@@ -71,10 +71,17 @@ jobs:
           api Fileman/mkdir --data-urlencode "path=${DEST}" --data-urlencode "name=assets" || true
 
           cd web/dist
-          api Fileman/upload_files -F "dir=${DEST}" -F "overwrite=1" -F "file-1=@index.html"
+          # Upload everything at the dist root (index.html, logo, favicons, ...)
+          for f in *; do
+            if [ -f "$f" ]; then
+              api Fileman/upload_files -F "dir=${DEST}" -F "overwrite=1" -F "file-1=@${f}"
+              echo "uploaded ${f}"
+            fi
+          done
           i=1
           for f in assets/*; do
             api Fileman/upload_files -F "dir=${DEST}/assets" -F "overwrite=1" -F "file-${i}=@${f}"
+            echo "uploaded ${f}"
             i=$((i+1))
           done
           echo "Deployed to https://wapitismith.com/pickem/"
