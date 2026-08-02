@@ -80,16 +80,19 @@ smtp_send_curl <- function(msg, to, host, port, user, pass,
   eml <- tempfile(fileext = ".eml")
   on.exit(unlink(eml), add = TRUE)
   writeBin(charToRaw(txt), eml)
-  cfg <- sprintf('user = "%s:%s"', user, pass)
+  # trimws: a stray newline in a pasted secret breaks auth invisibly.
+  # shQuote: pass creds as one safely-quoted argument (the curl-config
+  # quoting used previously mangles special characters -> Login denied).
+  cred <- paste0(trimws(user), ":", trimws(pass))
   out <- suppressWarnings(system2(
     "curl",
     c("-sS", "--ssl-reqd",
       sprintf("smtps://%s:%d", host, port),
-      "--mail-from", from,
-      "--mail-rcpt", to,
-      "--upload-file", eml,
-      "-K", "-"),
-    input = cfg, stdout = TRUE, stderr = TRUE
+      "--mail-from", shQuote(from),
+      "--mail-rcpt", shQuote(to),
+      "--upload-file", shQuote(eml),
+      "--user", shQuote(cred)),
+    stdout = TRUE, stderr = TRUE
   ))
   code <- attr(out, "status")
   if (!is.null(code) && code != 0) {
