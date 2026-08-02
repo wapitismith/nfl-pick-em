@@ -118,6 +118,11 @@ button.link {
 
 .welcome { margin: 0 0 4px; font-size: 0.88rem; }
 
+.pot-banner {
+  margin: 4px 0 8px; padding: 8px 12px; border-radius: 10px;
+  font-size: 0.9rem; background: #fff7e0; border: 1px solid #eadfae;
+}
+
 .pay-banner {
   margin: 4px 0 8px; padding: 8px 12px; border-radius: 10px;
   font-size: 0.9rem; display: flex; align-items: center; gap: 10px;

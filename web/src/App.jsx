@@ -104,10 +104,18 @@ export default function App() {
           )}
         </p>
       )}
-      {balance && balance.balance >= 0 && balance.weeks_played > 0 && (
+      {balance && balance.balance >= 0 && (
         <p className="pay-banner ok">
-          Dues paid up ✓
-          {balance.balance > 0 ? ` ($${Number(balance.balance).toFixed(0)} credit)` : ''}
+          {balance.weeks_played > 0
+            ? `Dues paid up ✓${balance.balance > 0 ? ` ($${Number(balance.balance).toFixed(0)} credit)` : ''}`
+            : balance.balance > 0
+              ? `$${Number(balance.balance).toFixed(0)} prepaid ✓ — dues are $5 per week you play`
+              : 'Dues: $5 per week you play'}
+          {VENMO_USER && (
+            <a className="venmo-btn" href={venmoLink(5)} target="_blank" rel="noreferrer">
+              {balance.balance > 0 ? 'Add on Venmo' : 'Prepay on Venmo'}
+            </a>
+          )}
         </p>
       )}
 

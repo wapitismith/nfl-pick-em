@@ -5,6 +5,15 @@ export default function Standings({ session, week }) {
   const [scope, setScope] = useState('week')
   const [rows, setRows] = useState([])
   const [updated, setUpdated] = useState(null)
+  const [pots, setPots] = useState([])
+
+  useEffect(() => {
+    supabase
+      .from('week_pots')
+      .select('*')
+      .eq('season', SEASON)
+      .then(({ data }) => setPots(data ?? []))
+  }, [week])
 
   const load = useCallback(async () => {
     const q =
@@ -29,9 +38,30 @@ export default function Standings({ session, week }) {
   }, [load])
 
   const me = session.user.id
+  const fmt$ = n => `$${Number(n).toFixed(2).replace(/\.00$/, '')}`
+  const thisPot = pots.find(p => p.week === week)
+  const seasonPot = pots
+    .filter(p => p.week > 0)
+    .reduce((s, p) => s + Number(p.to_season_pot), 0)
 
   return (
     <div>
+      {(thisPot || seasonPot > 0) && week > 0 && (
+        <p className="pot-banner">
+          {thisPot && (
+            <>
+              Week {week} pot: <b>{fmt$(thisPot.pot)}</b> · winner takes{' '}
+              <b>{fmt$(thisPot.weekly_prize)}</b>
+            </>
+          )}
+          {seasonPot > 0 && (
+            <>
+              {thisPot ? ' · ' : ''}Season pot: <b>{fmt$(seasonPot)}</b>{' '}
+              <span className="muted">(overall winner, end of regular season)</span>
+            </>
+          )}
+        </p>
+      )}
       <div className="scope-toggle">
         <button className={scope === 'week' ? 'active' : ''} onClick={() => setScope('week')}>
           {week === 0 ? 'Test Week' : `Week ${week}`}
