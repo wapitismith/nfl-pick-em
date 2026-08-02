@@ -115,6 +115,8 @@ button.link {
 .login label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
 .login button { background: var(--navy); color: #fff; font-weight: 700; }
 
+.welcome { margin: 0 0 4px; font-size: 0.88rem; }
+
 .admin-h { font-size: 1.05rem; color: var(--navy); margin: 22px 0 8px; }
 .admin-banner {
   background: #fff7e0; border: 1px solid #eadfae; border-radius: 10px;

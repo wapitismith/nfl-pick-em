@@ -10,7 +10,8 @@ export default function App() {
   const [tab, setTab] = useState('picks')
   const [week, setWeek] = useState(null)
   const [weeks, setWeeks] = useState([])
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [profile, setProfile] = useState(null)
+  const isAdmin = !!profile?.is_admin
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -18,15 +19,15 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  // Am I an admin?
+  // Who am I? (name + admin flag)
   useEffect(() => {
     if (!session) return
     supabase
       .from('profiles')
-      .select('is_admin')
+      .select('display_name,is_admin')
       .eq('id', session.user.id)
       .single()
-      .then(({ data }) => setIsAdmin(!!data?.is_admin))
+      .then(({ data }) => setProfile(data))
   }, [session])
 
   // Determine current week: earliest week with a non-final game
@@ -70,6 +71,12 @@ export default function App() {
         </div>
       </header>
 
+      <p className="welcome">
+        Signed in as <b>{profile?.display_name ?? '…'}</b>{' '}
+        <span className="muted">({session.user.email})</span>
+        {isAdmin && <span className="badge win" style={{ marginLeft: 6 }}>admin</span>}
+      </p>
+
       <nav className="tabs">
         <button className={tab === 'picks' ? 'active' : ''} onClick={() => setTab('picks')}>
           My Picks
@@ -85,7 +92,10 @@ export default function App() {
       </nav>
 
       {week == null ? (
-        <p className="muted center">No games loaded yet — run the schedule sync.</p>
+        <p className="muted center">
+          No games loaded yet. All tabs stay empty until the season schedule is
+          synced — run the <b>Sync schedule</b> workflow in GitHub Actions.
+        </p>
       ) : tab === 'picks' ? (
         <PickSheet session={session} week={week} />
       ) : tab === 'standings' ? (
