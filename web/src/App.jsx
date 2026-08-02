@@ -3,18 +3,31 @@ import { supabase, SEASON } from './supabase.js'
 import Login from './components/Login.jsx'
 import PickSheet from './components/PickSheet.jsx'
 import Standings from './components/Standings.jsx'
+import Admin from './components/Admin.jsx'
 
 export default function App() {
   const [session, setSession] = useState(null)
   const [tab, setTab] = useState('picks')
   const [week, setWeek] = useState(null)
   const [weeks, setWeeks] = useState([])
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  // Am I an admin?
+  useEffect(() => {
+    if (!session) return
+    supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', session.user.id)
+      .single()
+      .then(({ data }) => setIsAdmin(!!data?.is_admin))
+  }, [session])
 
   // Determine current week: earliest week with a non-final game
   useEffect(() => {
@@ -64,14 +77,21 @@ export default function App() {
         <button className={tab === 'standings' ? 'active' : ''} onClick={() => setTab('standings')}>
           Standings
         </button>
+        {isAdmin && (
+          <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>
+            Admin
+          </button>
+        )}
       </nav>
 
       {week == null ? (
         <p className="muted center">No games loaded yet — run the schedule sync.</p>
       ) : tab === 'picks' ? (
         <PickSheet session={session} week={week} />
-      ) : (
+      ) : tab === 'standings' ? (
         <Standings session={session} week={week} />
+      ) : (
+        <Admin session={session} week={week} />
       )}
     </div>
   )

@@ -115,6 +115,16 @@ button.link {
 .login label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
 .login button { background: var(--navy); color: #fff; font-weight: 700; }
 
+.admin-h { font-size: 1.05rem; color: var(--navy); margin: 22px 0 8px; }
+.admin-banner {
+  background: #fff7e0; border: 1px solid #eadfae; border-radius: 10px;
+  padding: 10px 12px; margin: 10px 0; display: flex;
+  justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.standings tr.inactive { opacity: 0.5; }
+.small { font-size: 0.78rem; }
+.teams input[type="number"] { width: 70px; flex: none; text-align: center; }
+
 .muted { color: var(--muted); font-weight: 400; }
 .center { text-align: center; }
 .error { color: var(--red); font-weight: 600; }

@@ -10,12 +10,13 @@ const fmtKick = iso =>
     minute: '2-digit',
   })
 
-export default function PickSheet({ session, week }) {
+export default function PickSheet({ session, week, forUser = null, admin = false }) {
   const [games, setGames] = useState([])
   const [picks, setPicks] = useState({}) // game_id -> {picked_team, confidence}
   const [saving, setSaving] = useState(null)
   const [error, setError] = useState(null)
-  const userId = session.user.id
+  // Admins can edit another player's picks via forUser
+  const userId = forUser?.id ?? session.user.id
 
   const load = useCallback(async () => {
     const [{ data: g }, { data: p }] = await Promise.all([
@@ -42,7 +43,7 @@ export default function PickSheet({ session, week }) {
     return () => clearInterval(t)
   }, [load])
 
-  const locked = g => new Date(g.kickoff) <= new Date()
+  const locked = g => !admin && new Date(g.kickoff) <= new Date()
   const usedConfidence = useMemo(() => {
     const gameIds = new Set(games.map(g => g.game_id))
     return new Set(
