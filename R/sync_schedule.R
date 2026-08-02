@@ -28,6 +28,7 @@ games <- sched |>
     ),
     home_team,
     away_team,
+    stadium,
     home_score = as.integer(home_score),
     away_score = as.integer(away_score),
     status = ifelse(!is.na(home_score) & !is.na(away_score), "final", "scheduled"),

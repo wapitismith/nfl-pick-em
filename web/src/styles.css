@@ -94,7 +94,8 @@ button.link {
 .badge.loss { background: #fdecec; color: var(--red); }
 
 .teams { display: flex; gap: 8px; }
-.teams .team { flex: 1; font-weight: 700; font-size: 1.05rem; }
+.teams .team { flex: 1; font-weight: 700; font-size: 0.92rem; padding: 10px 6px; }
+.teams .team .muted { font-size: 0.75rem; display: block; font-weight: 400; }
 .teams .team.picked {
   background: var(--navy);
   color: #fff;

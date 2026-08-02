@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, SEASON } from '../supabase.js'
+import { teamLabel } from '../teams.js'
 
 const fmtKick = iso =>
   new Date(iso).toLocaleString([], {
@@ -100,7 +101,10 @@ export default function PickSheet({ session, week, forUser = null, admin = false
         return (
           <div key={g.game_id} className={`game ${isLocked ? 'locked' : ''}`}>
             <div className="game-meta">
-              <span>{fmtKick(g.kickoff)}</span>
+              <span>
+                {fmtKick(g.kickoff)}
+                {g.stadium ? ` · ${g.stadium}` : ''}
+              </span>
               {live && <span className="badge live">LIVE {g.away_score}–{g.home_score}</span>}
               {final && (
                 <span className={`badge ${won ? 'win' : mine.picked_team ? 'loss' : ''}`}>
@@ -117,8 +121,8 @@ export default function PickSheet({ session, week, forUser = null, admin = false
                   disabled={isLocked || saving === g.game_id}
                   onClick={() => save(g.game_id, { picked_team: team })}
                 >
-                  {team}
-                  {team === g.home_team && <span className="muted"> (home)</span>}
+                  {teamLabel(team)}
+                  {team === g.home_team && <span className="muted"> home</span>}
                 </button>
               ))}
               <select
