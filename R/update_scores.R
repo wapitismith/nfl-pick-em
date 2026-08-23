@@ -24,8 +24,18 @@ if (all(our_games$status == "final")) { message("Week already final."); quit(sav
 
 # --- ESPN scoreboard ------------------------------------------------------
 # seasontype: 1=pre, 2=regular, 3=post
-resp <- httr2::request("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard") |>
-  httr2::req_url_query(dates = season, seasontype = 2, week = week) |>
+# Week 0 (test/trial week, incl. preseason games) has no regular-season
+# ESPN week, so query by date window instead and match on teams as usual.
+req <- httr2::request("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard")
+req <- if (week == 0) {
+  httr2::req_url_query(req,
+    dates = paste0(format(Sys.Date() - 1, "%Y%m%d"), "-",
+                   format(Sys.Date() + 1, "%Y%m%d")),
+    limit = 100)
+} else {
+  httr2::req_url_query(req, dates = season, seasontype = 2, week = week)
+}
+resp <- req |>
   httr2::req_perform() |>
   httr2::resp_body_json()
 

@@ -58,6 +58,16 @@ sb_upsert <- function(table, df, on_conflict = NULL) {
   invisible(NULL)
 }
 
+#' Delete rows matching a PostgREST filter string, e.g.
+#' sb_delete("games", "season=eq.2026&week=eq.0")
+sb_delete <- function(table, filter) {
+  sb_req(paste0(table, "?", filter)) |>
+    req_headers(Prefer = "return=minimal") |>
+    req_method("DELETE") |>
+    req_perform()
+  invisible(NULL)
+}
+
 #' Update rows matching a PostgREST filter string, e.g.
 #' sb_patch("profiles", "id=eq.abc", list(welcomed_at = "2026-08-02T12:00:00Z"))
 sb_patch <- function(table, filter, values) {
