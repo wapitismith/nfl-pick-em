@@ -133,36 +133,84 @@ export default function Admin({ session, week }) {
       {msg && <p className="center"><span className="badge win">{msg}</span></p>}
 
       <h2 className="admin-h">
-        Who's picked — {week === 0 ? 'Test Week' : `Week ${week}`}
+        Players — {week === 0 ? 'Test Week' : `Week ${week}`}
       </h2>
-      <table className="standings">
-        <thead>
-          <tr><th>Player</th><th>Picks in</th><th></th></tr>
-        </thead>
-        <tbody>
-          {active.map(p => {
-            const done = picks.filter(
-              k => k.user_id === p.id && k.confidence != null
-            ).length
-            const complete = nGames > 0 && done >= nGames
-            return (
-              <tr key={p.id}>
-                <td>{p.display_name}</td>
-                <td>
-                  <span className={`badge ${complete ? 'win' : 'loss'}`}>
-                    {done}/{nGames}
-                  </span>
-                </td>
-                <td>
-                  <button className="link" onClick={() => setEditPlayer(p)}>
-                    edit picks
-                  </button>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <p className="muted">
+        {
+          active.filter(p =>
+            nGames > 0 &&
+            picks.filter(k => k.user_id === p.id && k.confidence != null).length >= nGames
+          ).length
+        }/{active.length} picked in
+        {balances.length === 0 && ' — run payments.sql in Supabase to enable dues tracking'}
+        . Deactivated players keep their history but stop getting reminders and owing dues.
+      </p>
+      {players.map(p => {
+        const done = picks.filter(
+          k => k.user_id === p.id && k.confidence != null
+        ).length
+        const complete = nGames > 0 && done >= nGames
+        const b = balances.find(x => x.user_id === p.id)
+        return (
+          <div
+            key={p.id}
+            className={`player-card${p.active === false ? ' inactive' : ''}`}
+          >
+            <div className="pc-id">
+              <b>{p.display_name}</b>
+              {p.welcomed_at == null && (
+                <span className="badge" style={{ marginLeft: 6 }}>new</span>
+              )}
+              <div className="muted small">
+                {p.email}
+                {p.partner_email && <> + {p.partner_email}</>}
+              </div>
+              <div className="muted small">
+                joined {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
+              </div>
+            </div>
+            <div className="pc-status">
+              <span className={`badge ${complete ? 'win' : 'loss'}`}>
+                {done}/{nGames} picks
+              </span>
+              {b && (
+                <span className={`badge ${b.balance < 0 ? 'loss' : 'win'}`}>
+                  {b.balance < 0
+                    ? `owes $${Math.abs(b.balance).toFixed(0)}`
+                    : b.balance > 0
+                      ? `+$${Number(b.balance).toFixed(0)}`
+                      : 'paid up'}
+                </span>
+              )}
+            </div>
+            <div className="pc-actions">
+              <button className="link" onClick={() => setEditPlayer(p)}>picks</button>
+              {b && (
+                <button className="link" onClick={() => recordPayment(b)}>record $</button>
+              )}
+              <button className="link" onClick={() => rename(p)}>rename</button>
+              <button className="link" onClick={() => setPartnerEmail(p)}>partner</button>
+              <label className="pc-check">
+                <input
+                  type="checkbox"
+                  checked={p.active !== false}
+                  onChange={ev => updatePlayer(p.id, { active: ev.target.checked })}
+                />
+                active
+              </label>
+              <label className="pc-check">
+                <input
+                  type="checkbox"
+                  checked={!!p.is_admin}
+                  disabled={p.id === session.user.id} // can't un-admin yourself
+                  onChange={ev => updatePlayer(p.id, { is_admin: ev.target.checked })}
+                />
+                admin
+              </label>
+            </div>
+          </div>
+        )
+      })}
 
       <h2 className="admin-h">Game overrides</h2>
       <p className="muted">
@@ -204,93 +252,6 @@ export default function Admin({ session, week }) {
         )
       })}
 
-      <h2 className="admin-h">Pool dues ($5/week played)</h2>
-      <table className="standings">
-        <thead>
-          <tr><th>Player</th><th>Weeks</th><th>Owed</th><th>Paid</th><th>Balance</th><th></th></tr>
-        </thead>
-        <tbody>
-          {balances
-            .filter(b => b.active !== false || b.weeks_played > 0)
-            .map(b => (
-              <tr key={b.user_id}>
-                <td>{b.display_name}</td>
-                <td>{b.weeks_played}</td>
-                <td>${Number(b.owed).toFixed(0)}</td>
-                <td>${Number(b.paid).toFixed(0)}</td>
-                <td>
-                  <span className={`badge ${b.balance < 0 ? 'loss' : 'win'}`}>
-                    {b.balance < 0
-                      ? `owes $${Math.abs(b.balance).toFixed(0)}`
-                      : b.balance > 0
-                        ? `+$${Number(b.balance).toFixed(0)}`
-                        : 'even'}
-                  </span>
-                </td>
-                <td>
-                  <button className="link" onClick={() => recordPayment(b)}>
-                    record $
-                  </button>
-                </td>
-              </tr>
-            ))}
-          {balances.length === 0 && (
-            <tr>
-              <td colSpan="6" className="muted center">
-                Run payments.sql in Supabase to enable dues tracking.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      <h2 className="admin-h">Players</h2>
-      <table className="standings">
-        <thead>
-          <tr><th>Name</th><th>Joined</th><th>Active</th><th>Admin</th><th></th></tr>
-        </thead>
-        <tbody>
-          {players.map(p => (
-            <tr key={p.id} className={p.active === false ? 'inactive' : ''}>
-              <td>
-                {p.display_name}
-                <div className="muted small">{p.email}</div>
-                {p.partner_email && (
-                  <div className="muted small">+ {p.partner_email}</div>
-                )}
-              </td>
-              <td className="muted small">
-                {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
-                {p.welcomed_at == null && <div className="badge">new</div>}
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={p.active !== false}
-                  onChange={ev => updatePlayer(p.id, { active: ev.target.checked })}
-                />
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={!!p.is_admin}
-                  disabled={p.id === session.user.id} // can't un-admin yourself
-                  onChange={ev => updatePlayer(p.id, { is_admin: ev.target.checked })}
-                />
-              </td>
-              <td>
-                <button className="link" onClick={() => rename(p)}>rename</button>{' '}
-                <button className="link" onClick={() => setPartnerEmail(p)}>
-                  partner email
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="muted center">
-        Deactivated players keep their history but stop getting reminder emails.
-      </p>
     </div>
   )
 }
