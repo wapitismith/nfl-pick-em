@@ -177,6 +177,33 @@ button.link {
 .pc-check input {
   min-height: 0; width: 18px; height: 18px; padding: 0; margin: 0;
 }
+
+/* Email-all-players composer */
+.broadcast-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.broadcast-form textarea {
+  font: inherit;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  resize: vertical;
+}
+.broadcast-form button {
+  background: var(--navy); color: #fff; font-weight: 700;
+}
+.broadcast-log { border-top: 1px solid var(--border); padding-top: 8px; }
+.broadcast-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 0; font-size: 0.88rem;
+}
+.broadcast-subj { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-banner {
   background: #fff7e0; border: 1px solid #eadfae; border-radius: 10px;
   padding: 10px 12px; margin: 10px 0; display: flex;

@@ -10,6 +10,10 @@ export default function Admin({ session, week }) {
   const [editPlayer, setEditPlayer] = useState(null)
   const [gameEdits, setGameEdits] = useState({})
   const [msg, setMsg] = useState(null)
+  const [broadcasts, setBroadcasts] = useState([]) // null = table missing
+  const [bSubject, setBSubject] = useState('')
+  const [bBody, setBBody] = useState('')
+  const [queuing, setQueuing] = useState(false)
 
   const load = useCallback(async () => {
     const { data: g } = await supabase
@@ -26,10 +30,17 @@ export default function Admin({ session, week }) {
         : Promise.resolve({ data: [] }),
       supabase.from('player_balances').select('*').order('display_name'),
     ])
+    // broadcasts table may not exist until broadcasts.sql is run
+    const { data: bc, error: bcErr } = await supabase
+      .from('broadcasts')
+      .select('id,created_at,subject,sent_at')
+      .order('created_at', { ascending: false })
+      .limit(8)
     setGames(g ?? [])
     setPlayers(pl ?? [])
     setPicks(pk ?? [])
     setBalances(bal ?? [])
+    setBroadcasts(bcErr ? null : (bc ?? []))
   }, [week])
 
   useEffect(() => { load() }, [load])
@@ -86,6 +97,26 @@ export default function Admin({ session, week }) {
     else {
       flash(`${g.away_team} @ ${g.home_team} saved`)
       setGameEdits(cur => ({ ...cur, [g.game_id]: undefined }))
+      load()
+    }
+  }
+
+  // ----- broadcasts -----
+  async function queueBroadcast() {
+    if (!bSubject.trim() || !bBody.trim()) return
+    if (!window.confirm('Send this email to ALL active players?')) return
+    setQueuing(true)
+    const { error } = await supabase.from('broadcasts').insert({
+      subject: bSubject.trim(),
+      body: bBody.trim(),
+      created_by: session.user.id,
+    })
+    setQueuing(false)
+    if (error) flash(error.message)
+    else {
+      setBSubject('')
+      setBBody('')
+      flash('Queued! Goes out within 30 minutes.')
       load()
     }
   }
@@ -252,6 +283,57 @@ export default function Admin({ session, week }) {
         )
       })}
 
+      <h2 className="admin-h">Email all players</h2>
+      {broadcasts === null ? (
+        <p className="muted">
+          Run <b>broadcasts.sql</b> in Supabase to enable pool-wide emails.
+        </p>
+      ) : (
+        <div className="broadcast-form">
+          <input
+            placeholder="Subject"
+            value={bSubject}
+            maxLength={200}
+            onChange={e => setBSubject(e.target.value)}
+          />
+          <textarea
+            placeholder="Your message — plain text; a blank line starts a new paragraph"
+            rows={6}
+            value={bBody}
+            maxLength={10000}
+            onChange={e => setBBody(e.target.value)}
+          />
+          <button
+            disabled={queuing || !bSubject.trim() || !bBody.trim()}
+            onClick={queueBroadcast}
+          >
+            {queuing ? 'Queuing…' : 'Send to all active players'}
+          </button>
+          <p className="muted small">
+            Sends from pool@wapitismith.com to every active player (partner
+            emails included). Goes out within ~30 minutes — or run the
+            <b> Send broadcast</b> workflow in GitHub Actions to push it now.
+          </p>
+          {broadcasts.length > 0 && (
+            <div className="broadcast-log">
+              {broadcasts.map(b => (
+                <div key={b.id} className="broadcast-row">
+                  <span className={`badge ${b.sent_at ? 'win' : ''}`}>
+                    {b.sent_at ? 'sent' : 'queued'}
+                  </span>
+                  <span className="broadcast-subj">{b.subject}</span>
+                  <span className="muted small">
+                    {new Date(b.sent_at ?? b.created_at).toLocaleString([], {
+                      month: 'short', day: 'numeric',
+                      hour: 'numeric', minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
