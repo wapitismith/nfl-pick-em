@@ -101,24 +101,30 @@ smtp_send_curl <- function(msg, to, host, port, user, pass,
   invisible(TRUE)
 }
 
-#' Send an email through Resend (https://resend.com).
-#' Swap this function body for blastula/SMTP, Mailgun, Brevo, etc. if preferred.
+#' Send an email (one per recipient) from pool@wapitismith.com via the
+#' cPanel SMTP server, using smtp_send_curl above. Needs SMTP_PASSWORD;
+#' without it, prints what it would have sent (safe dry-run).
 send_email <- function(to, subject, html) {
-  api_key <- Sys.getenv("RESEND_API_KEY")
-  if (!nzchar(api_key)) {
-    message("RESEND_API_KEY not set - printing email instead:\n",
-            "To: ", paste(to, collapse = ", "), "\nSubject: ", subject)
+  to <- unique(to[!is.na(to) & nzchar(trimws(to))])
+  if (length(to) == 0) return(invisible(FALSE))
+  pass <- Sys.getenv("SMTP_PASSWORD")
+  if (!nzchar(pass)) {
+    message("SMTP_PASSWORD not set - would send to: ",
+            paste(to, collapse = ", "), " | ", subject)
     return(invisible(FALSE))
   }
-  request("https://api.resend.com/emails") |>
-    req_headers(Authorization = paste("Bearer", api_key)) |>
-    req_body_json(list(
-      from    = Sys.getenv("MAIL_FROM", "Pick-Em Pool <onboarding@resend.dev>"),
-      to      = as.list(to),
-      subject = subject,
-      html    = html
-    )) |>
-    req_perform()
+  if (!requireNamespace("emayili", quietly = TRUE)) stop("emayili not installed")
+  host <- env_or("SMTP_HOST", "mail.wapitismith.com")
+  port <- as.integer(env_or("SMTP_PORT", "465"))
+  user <- env_or("SMTP_USER", "pool@wapitismith.com")
+  for (t in to) {
+    msg <- emayili::envelope(
+      from = "Guffey Pick'Em <pool@wapitismith.com>",
+      to = t, subject = subject
+    ) |> emayili::html(html)
+    smtp_send_curl(msg, t, host, port, user, pass)
+    Sys.sleep(1)
+  }
   invisible(TRUE)
 }
 

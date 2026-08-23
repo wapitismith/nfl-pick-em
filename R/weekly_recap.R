@@ -25,7 +25,16 @@ seasonal <- sb_select("season_standings", list(
   select = "*", season = paste0("eq.", season),
   order = "confidence_points.desc,wins.desc"
 ))
-players <- sb_select("profiles", list(select = "email", email = "not.is.null"))
+# email + partner_email (two-person entries). Falls back gracefully if
+# partner_email.sql hasn't been run yet.
+players <- tryCatch(
+  sb_select("profiles", list(select = "email,partner_email",
+                             email = "not.is.null", active = "is.true")),
+  error = function(e)
+    sb_select("profiles", list(select = "email", email = "not.is.null",
+                               active = "is.true")) |>
+      mutate(partner_email = NA_character_)
+)
 
 if (nrow(weekly) == 0) { message("No picks to recap."); quit(save = "no") }
 
@@ -66,8 +75,9 @@ html <- sprintf(
       c("Player", "Wins", "Conf Pts"))
 )
 
+recipients <- c(players$email, players$partner_email)
 send_email(
-  to = players$email[nzchar(players$email)],
+  to = recipients,   # send_email() dedupes and drops NA/blank
   subject = sprintf("Pick-Em Week %d results: %s wins the week", week, champ$display_name),
   html = html
 )

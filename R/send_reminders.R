@@ -28,9 +28,13 @@ app_url <- Sys.getenv("APP_URL", "https://your-pool.netlify.app")
 for (i in seq_len(nrow(missing))) {
   m <- missing[i, ]
   if (is.na(m$email) || !nzchar(m$email)) next
+  # Two-person entries: partner_email (if the column exists and is set)
+  # gets the same reminder, so both inboxes see it.
+  recipients <- m$email
+  if ("partner_email" %in% names(m)) recipients <- c(recipients, m$partner_email)
   lock_local <- format(m$next_kickoff, "%a %I:%M %p %Z", tz = Sys.getenv("POOL_TZ", "America/Denver"))
   send_email(
-    to = m$email,
+    to = recipients,
     subject = sprintf("Pick-Em reminder: %d game%s still unpicked for Week %d",
                       m$games_unpicked, ifelse(m$games_unpicked == 1, "", "s"), week),
     html = sprintf(

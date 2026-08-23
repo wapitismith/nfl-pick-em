@@ -84,6 +84,28 @@ export default function App() {
               ))}
             </select>
           )}
+          <button
+            className="link"
+            onClick={async () => {
+              const p = window.prompt(
+                'Set a password (8+ characters). After this you can sign in ' +
+                'instantly on any device with email + password:'
+              )
+              if (p == null) return
+              if (p.length < 8) {
+                window.alert('Password must be at least 8 characters.')
+                return
+              }
+              const { error } = await supabase.auth.updateUser({ password: p })
+              window.alert(
+                error
+                  ? 'Could not set password: ' + error.message
+                  : 'Password set! Use it with your email on any device.'
+              )
+            }}
+          >
+            Password
+          </button>
           <button className="link" onClick={() => supabase.auth.signOut()}>
             Sign out
           </button>

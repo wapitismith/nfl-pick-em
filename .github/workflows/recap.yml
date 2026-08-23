@@ -19,10 +19,10 @@ jobs:
             any::dplyr
             any::jsonlite
             any::nflreadr
+            any::emayili
       - name: Send recap
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          MAIL_FROM: ${{ vars.MAIL_FROM }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: Rscript R/weekly_recap.R

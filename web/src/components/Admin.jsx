@@ -49,6 +49,15 @@ export default function Admin({ session, week }) {
     const name = window.prompt(`New name for ${p.display_name}:`, p.display_name)
     if (name && name.trim()) updatePlayer(p.id, { display_name: name.trim() })
   }
+  async function setPartnerEmail(p) {
+    const v = window.prompt(
+      `Partner email for ${p.display_name} (two people sharing one entry — ` +
+      `reminders and recaps go to both inboxes; leave blank to remove):`,
+      p.partner_email ?? ''
+    )
+    if (v == null) return
+    updatePlayer(p.id, { partner_email: v.trim() || null })
+  }
 
   // ----- game overrides -----
   async function saveGame(g) {
@@ -243,7 +252,13 @@ export default function Admin({ session, week }) {
         <tbody>
           {players.map(p => (
             <tr key={p.id} className={p.active === false ? 'inactive' : ''}>
-              <td>{p.display_name}<div className="muted small">{p.email}</div></td>
+              <td>
+                {p.display_name}
+                <div className="muted small">{p.email}</div>
+                {p.partner_email && (
+                  <div className="muted small">+ {p.partner_email}</div>
+                )}
+              </td>
               <td className="muted small">
                 {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
                 {p.welcomed_at == null && <div className="badge">new</div>}
@@ -263,7 +278,12 @@ export default function Admin({ session, week }) {
                   onChange={ev => updatePlayer(p.id, { is_admin: ev.target.checked })}
                 />
               </td>
-              <td><button className="link" onClick={() => rename(p)}>rename</button></td>
+              <td>
+                <button className="link" onClick={() => rename(p)}>rename</button>{' '}
+                <button className="link" onClick={() => setPartnerEmail(p)}>
+                  partner email
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
