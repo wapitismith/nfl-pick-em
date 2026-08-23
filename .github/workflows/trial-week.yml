@@ -4,7 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       days_ahead:
-        description: "How many days of upcoming games to load (blank = 8)"
+        description: "How many days of games to load (blank = 8)"
+        required: false
+      start_date:
+        description: "First day of the slate, YYYY-MM-DD (blank = today)"
         required: false
 
 jobs:
@@ -27,4 +30,5 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           DAYS_AHEAD: ${{ inputs.days_ahead }}
+          START_DATE: ${{ inputs.start_date }}
         run: Rscript R/load_trial_week.R

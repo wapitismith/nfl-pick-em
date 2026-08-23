@@ -16,9 +16,13 @@ source(file.path(dirname(sub("--file=", "", grep("--file=", commandArgs(), value
 
 season     <- as.integer(env_or("SEASON", current_season()))
 days_ahead <- as.integer(env_or("DAYS_AHEAD", "8"))
+# Optional explicit window start (YYYY-MM-DD). Without it the window starts
+# "today", which can scoop up stragglers from the current preseason week —
+# set it to the first day of the slate you actually want.
+start_date <- as.Date(env_or("START_DATE", as.character(Sys.Date())))
 
-from <- format(Sys.Date(), "%Y%m%d")
-to   <- format(Sys.Date() + days_ahead, "%Y%m%d")
+from <- format(start_date, "%Y%m%d")
+to   <- format(start_date + days_ahead, "%Y%m%d")
 message("Trial week: loading NFL games ", from, " - ", to, " as week 0")
 
 resp <- httr2::request("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard") |>
