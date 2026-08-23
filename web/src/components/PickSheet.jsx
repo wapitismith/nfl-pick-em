@@ -81,6 +81,84 @@ export default function PickSheet({ session, week, forUser = null, admin = false
     }
   }
 
+  // Change/swap confidence. If the chosen number is already on another
+  // game, trade the two rankings (in three steps, because each number can
+  // only be used once per week: free it, take it, hand mine back).
+  async function setConfidence(gameId, value) {
+    const otherEntry = Object.entries(picks).find(
+      ([id, p]) =>
+        id !== gameId &&
+        p.confidence === value &&
+        games.some(g => g.game_id === id)
+    )
+    if (!otherEntry) return save(gameId, { confidence: value })
+
+    const [otherId, otherPick] = otherEntry
+    const otherGame = games.find(g => g.game_id === otherId)
+    if (locked(otherGame)) {
+      setError(
+        `Can't take ${value} — that number belongs to a game that has already locked.`
+      )
+      return
+    }
+    const myOld = picks[gameId]?.confidence ?? null
+    setError(null)
+    setSaving(gameId)
+    // 1) free the number
+    let res = await supabase
+      .from('picks')
+      .update({ confidence: null })
+      .eq('user_id', userId)
+      .eq('game_id', otherId)
+    if (res.error) {
+      setSaving(null)
+      setError(res.error.message)
+      return
+    }
+    // 2) take it
+    res = await supabase
+      .from('picks')
+      .upsert(
+        {
+          user_id: userId,
+          game_id: gameId,
+          picked_team: picks[gameId]?.picked_team,
+          confidence: value,
+          tiebreaker_guess: picks[gameId]?.tiebreaker_guess ?? null,
+        },
+        { onConflict: 'user_id,game_id' }
+      )
+    if (res.error) {
+      // put the other game back the way it was
+      await supabase
+        .from('picks')
+        .update({ confidence: value })
+        .eq('user_id', userId)
+        .eq('game_id', otherId)
+      setSaving(null)
+      setError(
+        /kickoff|policy/i.test(res.error.message)
+          ? 'That game has locked — pick not saved.'
+          : res.error.message
+      )
+      return
+    }
+    // 3) hand my old number to the other game (stays blank if I had none)
+    if (myOld != null) {
+      res = await supabase
+        .from('picks')
+        .update({ confidence: myOld })
+        .eq('user_id', userId)
+        .eq('game_id', otherId)
+    }
+    setSaving(null)
+    setPicks(cur => ({
+      ...cur,
+      [gameId]: { ...cur[gameId], confidence: value },
+      [otherId]: { ...otherPick, confidence: myOld },
+    }))
+  }
+
   const nPicked = games.filter(
     g => picks[g.game_id]?.picked_team && picks[g.game_id]?.confidence != null
   ).length
@@ -94,7 +172,8 @@ export default function PickSheet({ session, week, forUser = null, admin = false
     <div>
       <p className="muted center">
         {nPicked}/{games.length} picks complete · tap a team, then set confidence
-        ({games.length} = most confident)
+        ({games.length} = most confident). Picking a number another game
+        already has swaps the two.
       </p>
       {error && <p className="error center">{error}</p>}
 
@@ -148,16 +227,19 @@ export default function PickSheet({ session, week, forUser = null, admin = false
                 value={mine.confidence ?? ''}
                 disabled={isLocked || !mine.picked_team || saving === g.game_id}
                 onChange={e =>
-                  save(g.game_id, { confidence: Number(e.target.value) })
+                  setConfidence(g.game_id, Number(e.target.value))
                 }
                 aria-label="Confidence points"
               >
                 <option value="" disabled>pts</option>
-                {Array.from({ length: games.length }, (_, i) => i + 1)
-                  .filter(n => !usedConfidence.has(n) || n === mine.confidence)
-                  .map(n => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
+                {Array.from({ length: games.length }, (_, i) => i + 1).map(n => (
+                  <option key={n} value={n}>
+                    {n}
+                    {usedConfidence.has(n) && n !== mine.confidence
+                      ? ' ⇄ swap'
+                      : ''}
+                  </option>
+                ))}
               </select>
             </div>
             {g.game_id === tbGameId && (
