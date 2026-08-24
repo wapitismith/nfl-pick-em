@@ -60,19 +60,62 @@ tbl <- function(df, cols, headers) sprintf(
   paste(headers, collapse = "</th><th>"), row_html(df, cols)
 )
 
+# ---- The famous raw pick grid: every player, every game, pick + confidence.
+# Week is final, so nothing here is secret anymore.
+pr <- sb_select("pick_results", list(
+  select = "user_id,display_name,game_id,picked_team,confidence,correct",
+  season = paste0("eq.", season), week = paste0("eq.", week)
+))
+gk <- sb_select("games", list(
+  select = "game_id,away_team,home_team",
+  season = paste0("eq.", season), week = paste0("eq.", week),
+  order = "kickoff.asc"
+))
+grid_html <- ""
+if (nrow(pr) > 0 && nrow(gk) > 0) {
+  cell <- function(uid, gid) {
+    r <- pr[pr$user_id == uid & pr$game_id == gid, ]
+    if (nrow(r) == 0) return("<td style='color:#aaa'>&mdash;</td>")
+    bg <- if (isTRUE(r$correct[1])) "#e5f5ea" else
+          if (isFALSE(r$correct[1])) "#fdecec" else "#fff"
+    sprintf("<td style='background:%s'>%s&nbsp;<small>%s</small></td>",
+            bg, r$picked_team[1],
+            ifelse(is.na(r$confidence[1]), "", r$confidence[1]))
+  }
+  names_sorted <- pr |> distinct(user_id, display_name) |> arrange(display_name)
+  hdr <- paste0("<th>", gk$away_team, "<br>@", gk$home_team, "</th>", collapse = "")
+  rows <- vapply(seq_len(nrow(names_sorted)), function(i) {
+    u <- names_sorted[i, ]
+    paste0("<tr><td><b>", u$display_name, "</b></td>",
+           paste0(vapply(gk$game_id, function(g) cell(u$user_id, g), ""), collapse = ""),
+           "</tr>")
+  }, "")
+  grid_html <- sprintf(
+    "<h3>The full pick grid</h3>
+     <table border='1' cellpadding='4' cellspacing='0'
+            style='border-collapse:collapse;font-size:12px'>
+     <tr><th>Player</th>%s</tr>%s</table>
+     <p style='color:#888;font-size:11px'>Green = got it, red = didn't.
+     Small number = confidence points.</p>",
+    hdr, paste0(rows, collapse = "\n"))
+}
+
 champ <- weekly[1, ]
 html <- sprintf(
   "<h2>Week %d Recap</h2>
    <p>&#127942; <b>%s</b> takes the week with %d confidence points (%d-%d straight up).</p>
    <h3>Week %d results</h3>%s
    <h3>Season standings</h3>%s
-   <p style='color:#888'>Automated recap &mdash; NFL Pick-Em Pool</p>",
+   %s
+   <p style='color:#888'>Automated recap &mdash; NFL Pick-Em Pool &middot;
+   more stats on the <a href='https://wapitismith.com/pickem/'>Stats tab</a></p>",
   week, champ$display_name, champ$confidence_points, champ$wins,
   champ$graded - champ$wins, week,
   tbl(weekly,   c("display_name", "wins", "confidence_points"),
       c("Player", "Wins", "Conf Pts")),
   tbl(seasonal, c("display_name", "wins", "confidence_points"),
-      c("Player", "Wins", "Conf Pts"))
+      c("Player", "Wins", "Conf Pts")),
+  grid_html
 )
 
 recipients <- c(players$email, players$partner_email)

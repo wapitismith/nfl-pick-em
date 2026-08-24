@@ -3,6 +3,7 @@ import { supabase, SEASON, VENMO_USER, venmoLink } from './supabase.js'
 import Login from './components/Login.jsx'
 import PickSheet from './components/PickSheet.jsx'
 import Standings from './components/Standings.jsx'
+import Stats from './components/Stats.jsx'
 import Admin from './components/Admin.jsx'
 
 export default function App() {
@@ -155,6 +156,9 @@ export default function App() {
         <button className={tab === 'standings' ? 'active' : ''} onClick={() => setTab('standings')}>
           Standings
         </button>
+        <button className={tab === 'stats' ? 'active' : ''} onClick={() => setTab('stats')}>
+          Stats
+        </button>
         {isAdmin && (
           <button className={tab === 'admin' ? 'active' : ''} onClick={() => setTab('admin')}>
             Admin
@@ -171,6 +175,8 @@ export default function App() {
         <PickSheet session={session} week={week} />
       ) : tab === 'standings' ? (
         <Standings session={session} week={week} />
+      ) : tab === 'stats' ? (
+        <Stats session={session} week={week} />
       ) : (
         <Admin session={session} week={week} />
       )}
