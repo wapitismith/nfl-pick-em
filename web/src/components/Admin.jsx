@@ -60,6 +60,17 @@ export default function Admin({ session, week }) {
     const name = window.prompt(`New name for ${p.display_name}:`, p.display_name)
     if (name && name.trim()) updatePlayer(p.id, { display_name: name.trim() })
   }
+  async function resetPassword(p) {
+    if (!p.email) return
+    if (!window.confirm(
+      `Email a password-reset link to ${p.display_name} (${p.email})?\n\n` +
+      'They click the link, land signed in, and are prompted to set a new password.'
+    )) return
+    const { error } = await supabase.auth.resetPasswordForEmail(p.email, {
+      redirectTo: window.location.origin + import.meta.env.BASE_URL,
+    })
+    flash(error ? error.message : `Reset link sent to ${p.email}`)
+  }
   async function setPartnerEmail(p) {
     const v = window.prompt(
       `Partner email for ${p.display_name} (two people sharing one entry — ` +
@@ -221,6 +232,7 @@ export default function Admin({ session, week }) {
               )}
               <button className="link" onClick={() => rename(p)}>rename</button>
               <button className="link" onClick={() => setPartnerEmail(p)}>partner</button>
+              <button className="link" onClick={() => resetPassword(p)}>reset pw</button>
               <label className="pc-check">
                 <input
                   type="checkbox"

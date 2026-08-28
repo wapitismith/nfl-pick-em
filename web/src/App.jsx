@@ -17,7 +17,30 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s)
+      // Arrived via an admin-sent (or self-service) password reset link:
+      // they're signed in now, so collect the new password right away.
+      if (event === 'PASSWORD_RECOVERY') {
+        setTimeout(async () => {
+          const p = window.prompt(
+            'Set your new password (8+ characters):'
+          )
+          if (p == null) return
+          if (p.length < 8) {
+            window.alert('Password must be at least 8 characters — ' +
+              'use the "Password" link at the top to try again.')
+            return
+          }
+          const { error } = await supabase.auth.updateUser({ password: p })
+          window.alert(
+            error
+              ? 'Could not set password: ' + error.message
+              : 'Password updated! Use it with your email on any device.'
+          )
+        }, 300)
+      }
+    })
     return () => sub.subscription.unsubscribe()
   }, [])
 
