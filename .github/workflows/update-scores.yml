@@ -14,8 +14,10 @@ on:
     - cron: "7 14 * * 6"   # Sat early (late-season Saturday games)
     - cron: "7 20 * * 6"   # Sat late
     - cron: "7 1 * * 0"    # Sat night finish: Sun 01:07 UTC
-    # PRESEASON TRIAL leftover (Aug 29-31 2026 only; safe to delete after):
+    # PRESEASON TRIAL leftover (Aug 2026 only; safe to delete after):
     - cron: "7 23 29-31 8 *"
+    # Tonight (Fri 8/28 MT = early 8/29 UTC): catch the rest of the slate
+    - cron: "7 2-4 29 8 *"
   workflow_dispatch:
     inputs:
       minutes:
