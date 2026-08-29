@@ -214,6 +214,8 @@ button.link {
 .pickgrid tr.me td:first-child { background: #eef6f0; }
 .cell-win  { background: #e5f5ea; color: #1b5e30; font-weight: 700; }
 .cell-loss { background: #fdecec; color: var(--red); }
+
+.game-link { color: var(--navy); font-weight: 600; white-space: nowrap; }
 .admin-banner {
   background: #fff7e0; border: 1px solid #eadfae; border-radius: 10px;
   padding: 10px 12px; margin: 10px 0; display: flex;

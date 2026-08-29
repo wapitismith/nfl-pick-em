@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, SEASON } from '../supabase.js'
-import { teamLabel, helmetSrc, espnLogo } from '../teams.js'
+import { TEAM_NAMES, teamLabel, helmetSrc, espnLogo } from '../teams.js'
+
+// Google's live game panel (score, plays, highlights) for a matchup.
+// "nfl" disambiguates shared mascots (MLB Cardinals/Giants, NHL Panthers...).
+const gameSearchUrl = (away, home) =>
+  'https://www.google.com/search?q=' +
+  encodeURIComponent(
+    `${TEAM_NAMES[away] ?? away} vs ${TEAM_NAMES[home] ?? home} nfl`
+  )
 
 const fmtKick = iso =>
   new Date(iso).toLocaleString([], {
@@ -190,6 +198,16 @@ export default function PickSheet({ session, week, forUser = null, admin = false
                 {fmtKick(g.kickoff)}
                 {g.stadium ? ` · ${g.stadium}` : ''}
               </span>
+              {new Date(g.kickoff) <= new Date() && (
+                <a
+                  className="game-link"
+                  href={gameSearchUrl(g.away_team, g.home_team)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Game center ↗
+                </a>
+              )}
               {live && <span className="badge live">LIVE {g.away_score}–{g.home_score}</span>}
               {final && (
                 <span className={`badge ${won ? 'win' : mine.picked_team ? 'loss' : ''}`}>
