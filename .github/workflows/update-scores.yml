@@ -2,31 +2,34 @@ name: Live score updates
 
 on:
   schedule:
-    # Every 10 min during US game windows (cron is UTC).
-    # Thu night: 00:00-04:50 UTC Fri (8:00pm-11:50pm ET Thu)
-    - cron: "*/10 0-4 * * 5"
-    # Sunday: 17:00-23:50 UTC (1:00pm ET onward)
-    - cron: "*/10 17-23 * * 0"
-    # Sunday night into Monday: 00:00-04:50 UTC Mon
-    - cron: "*/10 0-4 * * 1"
-    # Monday night: 00:00-04:50 UTC Tue
-    - cron: "*/10 0-4 * * 2"
-    # Sat games (late season) + Sun international windows: hourly safety net
-    - cron: "0 14-23 * * 6"
-    # PRESEASON TRIAL WEEK (Aug 2026): every 15 min on late-Aug evenings,
-    # any day of week. Only fires in August — safe to delete after the trial.
-    - cron: "*/15 23 24-31 8 *"
-    - cron: "*/15 0-5 25-31 8 *"
-    - cron: "*/15 14-22 29-31 8 *"
-  workflow_dispatch: {}
+    # ONE kick per game window (minute :07 — off-peak, so GitHub actually
+    # fires it). Each run then LOOPS internally every 5 minutes for up to
+    # 5.5 hours, until the window ends or every game is final. GitHub
+    # delays/drops high-frequency schedules under load (we watched */15
+    # degrade over 3 days in Aug 2026) — one event per window is reliable.
+    - cron: "7 0 * * 5"    # Thu night: Fri 00:07 UTC (TNF)
+    - cron: "7 17 * * 0"   # Sun early slate: 17:07 UTC
+    - cron: "7 22 * * 0"   # Sun late slate + SNF: 22:07 UTC (loops into Mon)
+    - cron: "7 0 * * 2"    # Mon night: Tue 00:07 UTC (MNF)
+    - cron: "7 14 * * 6"   # Sat early (late-season Saturday games)
+    - cron: "7 20 * * 6"   # Sat late
+    - cron: "7 1 * * 0"    # Sat night finish: Sun 01:07 UTC
+    # PRESEASON TRIAL leftover (Aug 29-31 2026 only; safe to delete after):
+    - cron: "7 23 29-31 8 *"
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "Keep checking for this many minutes (blank = check once and stop)"
+        required: false
 
 concurrency:
   group: update-scores
-  cancel-in-progress: true
+  cancel-in-progress: true   # a new window's run supersedes a stale loop
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: r-lib/actions/setup-r@v2
@@ -39,8 +42,27 @@ jobs:
             any::purrr
             any::jsonlite
             any::nflreadr
-      - name: Update scores
+      - name: Update scores (loop until window ends or week is final)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: Rscript R/update_scores.R
+          # Scheduled runs loop for 5.5h; manual runs check once unless
+          # a minutes value is typed in the run box.
+          LOOP_MINUTES: ${{ github.event_name == 'schedule' && '330' || inputs.minutes || '0' }}
+        run: |
+          set -uo pipefail
+          mins="${LOOP_MINUTES:-0}"
+          end=$(( $(date +%s) + mins * 60 ))
+          echo "Looping for ${mins} minutes (0 = single pass), every 5 min."
+          while :; do
+            out=$(Rscript R/update_scores.R 2>&1) || true
+            echo "----- $(date -u '+%H:%M UTC') -----"
+            echo "$out"
+            case "$out" in
+              *"Week already final"*|*"No games found"*)
+                echo "Nothing left to update — ending early."; break ;;
+            esac
+            [ "$(date +%s)" -ge "$end" ] && break
+            sleep 300
+          done
+          echo "Window complete."
