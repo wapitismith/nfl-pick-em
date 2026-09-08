@@ -196,15 +196,26 @@ export default function PickSheet({ session, week, forUser = null, admin = false
         .replace(/>/g, '&gt;')
     const weekLabel = week === 0 ? 'Test Week' : `Week ${week}`
     const tbGuess = tbGameId ? picks[tbGameId]?.tiebreaker_guess : null
+    // Team logo for the print window. Its document is about:blank, so the
+    // self-hosted helmet path must be made absolute; ESPN CDN is the
+    // fallback exactly like the pick tiles.
+    const logo = t =>
+      `<img class="lg" src="${new URL(helmetSrc(t), window.location.href).href}" ` +
+      `onerror="this.onerror=null;this.src='${espnLogo(t)}'">`
     const rows = games
       .map(g => {
         const m = picks[g.game_id] ?? {}
         return `<tr>
           <td>${esc(fmtKick(g.kickoff))}</td>
-          <td>${esc(teamLabel(g.away_team))} @ ${esc(teamLabel(g.home_team))}${
+          <td>${logo(g.away_team)} ${esc(teamLabel(g.away_team))} @
+              ${logo(g.home_team)} ${esc(teamLabel(g.home_team))}${
             g.game_id === tbGameId ? ' <span class="tb">TB</span>' : ''
           }</td>
-          <td class="pick">${m.picked_team ? esc(teamLabel(m.picked_team)) : '&mdash;'}</td>
+          <td class="pick">${
+            m.picked_team
+              ? `${logo(m.picked_team)} ${esc(teamLabel(m.picked_team))}`
+              : '&mdash;'
+          }</td>
           <td class="num">${m.confidence ?? '&mdash;'}</td>
         </tr>`
       })
@@ -217,7 +228,7 @@ export default function PickSheet({ session, week, forUser = null, admin = false
     w.document.write(`<!doctype html><html><head><meta charset="utf-8">
 <title>Guffey Pick'Em ${esc(weekLabel)} - ${esc(name)}</title>
 <style>
-  @page { size: letter; margin: 0.6in; }
+  @page { size: letter; margin: 1in; }
   body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
          color: #16202e; margin: 0; }
   h1 { font-size: 18px; color: #0b2545; margin: 0; }
@@ -228,6 +239,7 @@ export default function PickSheet({ session, week, forUser = null, admin = false
   .pick { font-weight: 700; }
   .num { text-align: center; font-weight: 700; width: 60px; }
   .tb { font-size: 9px; font-weight: 700; color: #b3313c; }
+  .lg { height: 16px; width: 16px; object-fit: contain; vertical-align: -3px; }
   .tbline { margin-top: 10px; font-size: 12px; }
   .foot { margin-top: 16px; color: #999; font-size: 10px; }
 </style></head><body>
@@ -240,7 +252,9 @@ export default function PickSheet({ session, week, forUser = null, admin = false
 <p class="tbline"><b>Tiebreaker</b> (combined final score of the TB game):
   ${tbGuess ?? '&mdash;'}</p>
 <p class="foot">wapitismith.com/pickem &middot; picks lock at each game's kickoff</p>
-<script>window.onload = function () { window.print() }<\/script>
+<script>window.onload = function () {
+  setTimeout(function () { window.print() }, 400) // let fallback logos land
+}<\/script>
 </body></html>`)
     w.document.close()
   }
