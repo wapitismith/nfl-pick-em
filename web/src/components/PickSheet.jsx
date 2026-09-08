@@ -176,12 +176,84 @@ export default function PickSheet({ session, week, forUser = null, admin = false
     ? games.reduce((a, b) => (new Date(a.kickoff) > new Date(b.kickoff) ? a : b)).game_id
     : null
 
+  // One-page printable sheet: this week's games with the player's picks and
+  // confidence. Opens a clean window and fires the print dialog, where
+  // "Save as PDF" produces the file on any phone or computer.
+  async function printSheet() {
+    let name = forUser?.display_name
+    if (!name) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', userId)
+        .single()
+      name = data?.display_name ?? session.user.email
+    }
+    const esc = s =>
+      String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+    const weekLabel = week === 0 ? 'Test Week' : `Week ${week}`
+    const tbGuess = tbGameId ? picks[tbGameId]?.tiebreaker_guess : null
+    const rows = games
+      .map(g => {
+        const m = picks[g.game_id] ?? {}
+        return `<tr>
+          <td>${esc(fmtKick(g.kickoff))}</td>
+          <td>${esc(teamLabel(g.away_team))} @ ${esc(teamLabel(g.home_team))}${
+            g.game_id === tbGameId ? ' <span class="tb">TB</span>' : ''
+          }</td>
+          <td class="pick">${m.picked_team ? esc(teamLabel(m.picked_team)) : '&mdash;'}</td>
+          <td class="num">${m.confidence ?? '&mdash;'}</td>
+        </tr>`
+      })
+      .join('')
+    const w = window.open('', '_blank')
+    if (!w) {
+      setError('Pop-up blocked. Allow pop-ups for this site to print the sheet.')
+      return
+    }
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8">
+<title>Guffey Pick'Em ${esc(weekLabel)} - ${esc(name)}</title>
+<style>
+  @page { size: letter; margin: 0.6in; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+         color: #16202e; margin: 0; }
+  h1 { font-size: 18px; color: #0b2545; margin: 0; }
+  .sub { color: #666; font-size: 12px; margin: 2px 0 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; }
+  th { background: #0b2545; color: #fff; font-size: 11px; }
+  .pick { font-weight: 700; }
+  .num { text-align: center; font-weight: 700; width: 60px; }
+  .tb { font-size: 9px; font-weight: 700; color: #b3313c; }
+  .tbline { margin-top: 10px; font-size: 12px; }
+  .foot { margin-top: 16px; color: #999; font-size: 10px; }
+</style></head><body>
+<h1>Guffey Pick'Em &middot; ${esc(weekLabel)} &middot; ${esc(name)}</h1>
+<p class="sub">Printed ${esc(new Date().toLocaleString())}</p>
+<table>
+  <tr><th>Kickoff</th><th>Game</th><th>Pick</th><th>Conf</th></tr>
+  ${rows}
+</table>
+<p class="tbline"><b>Tiebreaker</b> (combined final score of the TB game):
+  ${tbGuess ?? '&mdash;'}</p>
+<p class="foot">wapitismith.com/pickem &middot; picks lock at each game's kickoff</p>
+<script>window.onload = function () { window.print() }<\/script>
+</body></html>`)
+    w.document.close()
+  }
+
   return (
     <div>
       <p className="muted center">
         {nPicked}/{games.length} picks complete · tap a team, then set confidence
         ({games.length} = most confident). Picking a number another game
-        already has swaps the two.
+        already has swaps the two.{' '}
+        <button className="link" onClick={printSheet}>
+          Print / save PDF
+        </button>
       </p>
       {error && <p className="error center">{error}</p>}
 
