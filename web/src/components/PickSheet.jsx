@@ -46,14 +46,17 @@ export default function PickSheet({ session, week, forUser = null, admin = false
     for (const row of p ?? []) mine[row.game_id] = row
     setPicks(mine)
 
-    // Season records from finished regular-season games (week 0 trial excluded)
+    // Records ENTERING the viewed week: only finals from earlier weeks count,
+    // so a Week 1 card still shows (0-0) when you look back in November.
+    // (Week 0 trial games can never match week < 1.)
     const { data: done } = await supabase
       .from('games')
       .select('home_team,away_team,winner')
       .eq('season', SEASON)
       .eq('game_type', 'REG')
       .eq('status', 'final')
-      .neq('week', 0)
+      .gt('week', 0)
+      .lt('week', week)
     const rec = {}
     const bump = (t, k) => {
       rec[t] = rec[t] ?? { w: 0, l: 0, t: 0 }
