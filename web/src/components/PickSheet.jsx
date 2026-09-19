@@ -22,6 +22,7 @@ const fmtKick = iso =>
 export default function PickSheet({ session, week, forUser = null, admin = false }) {
   const [games, setGames] = useState([])
   const [picks, setPicks] = useState({}) // game_id -> {picked_team, confidence}
+  const [records, setRecords] = useState({}) // team -> {w, l, t}
   const [saving, setSaving] = useState(null)
   const [error, setError] = useState(null)
   // Admins can edit another player's picks via forUser
@@ -44,7 +45,36 @@ export default function PickSheet({ session, week, forUser = null, admin = false
     const mine = {}
     for (const row of p ?? []) mine[row.game_id] = row
     setPicks(mine)
+
+    // Season records from finished regular-season games (week 0 trial excluded)
+    const { data: done } = await supabase
+      .from('games')
+      .select('home_team,away_team,winner')
+      .eq('season', SEASON)
+      .eq('game_type', 'REG')
+      .eq('status', 'final')
+      .neq('week', 0)
+    const rec = {}
+    const bump = (t, k) => {
+      rec[t] = rec[t] ?? { w: 0, l: 0, t: 0 }
+      rec[t][k]++
+    }
+    for (const gm of done ?? []) {
+      if (gm.winner === 'TIE') {
+        bump(gm.home_team, 't')
+        bump(gm.away_team, 't')
+      } else if (gm.winner) {
+        bump(gm.winner, 'w')
+        bump(gm.winner === gm.home_team ? gm.away_team : gm.home_team, 'l')
+      }
+    }
+    setRecords(rec)
   }, [week, userId])
+
+  const teamRecord = team => {
+    const r = records[team] ?? { w: 0, l: 0, t: 0 }
+    return `${r.w}-${r.l}${r.t ? `-${r.t}` : ''}`
+  }
 
   useEffect(() => {
     load()
@@ -323,6 +353,7 @@ export default function PickSheet({ session, week, forUser = null, admin = false
                     }}
                   />
                   <span className="team-name">{teamLabel(team)}</span>
+                  <span className="team-rec">({teamRecord(team)})</span>
                   {team === g.home_team && <span className="muted">home</span>}
                 </button>
               ))}
